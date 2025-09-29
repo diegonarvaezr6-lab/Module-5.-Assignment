@@ -1,0 +1,134 @@
+
+R version 4.5.1 (2025-06-13) -- "Great Square Root"
+Copyright (C) 2025 The R Foundation for Statistical Computing
+Platform: aarch64-apple-darwin20
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+  Natural language support but running in an English locale
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+[R.app GUI 1.82 (8536) aarch64-apple-darwin20]
+
+[Workspace restored from /Users/diegonarvaez/.RData]
+[History restored from /Users/diegonarvaez/.Rapp.history]
+
+> # Assignment #4 — Working with Matrices in R
+> # Diego Narvaez — Data Analytics
+> 
+> # ---- 1) Create the matrices -------------------------------------------------
+> A <- matrix(1:100,  nrow = 10)   # 10 x 10 (column-major fill)
+> B <- matrix(1:1000, nrow = 10)   # 10 x 100 (non-square)
+> 
+> # ---- 2) Inspect dimensions --------------------------------------------------
+> dimA <- dim(A)  # expected 10 x 10
+> dimB <- dim(B)  # expected 10 x 100
+> 
+> cat("dim(A):", paste(dimA, collapse = " x "), "\n")
+dim(A): 10 x 10 
+> cat("dim(B):", paste(dimB, collapse = " x "), "\n\n")
+dim(B): 10 x 100 
+
+> 
+> # ---- Helpers: safe ops with error capture -----------------------------------
+> safe_det <- function(M) {
++   tryCatch(det(M),
++            error = function(e) {
++              structure(list(error = TRUE, message = conditionMessage(e)),
++                        class = "det_error")
++            })
++ }
+> 
+> safe_inv <- function(M) {
++   tryCatch(solve(M),
++            error = function(e) {
++              structure(list(error = TRUE, message = conditionMessage(e)),
++                        class = "inv_error")
++            })
++ }
+> 
+> # Optional diagnostics
+> safe_rank <- function(M) {
++   # numeric rank via QR (base R)
++   qr(M)$rank
++ }
+> safe_kappa <- function(M) {
++   # condition number; large -> ill-conditioned (if square)
++   tryCatch(kappa(M),
++            error = function(e) NA_real_)
++ }
+> 
+> # ---- 3) Determinant & inverse for A -----------------------------------------
+> detA <- safe_det(A)
+> invA <- safe_inv(A)
+> rankA <- safe_rank(A)
+> kappaA <- safe_kappa(A)
+> 
+> cat("A diagnostics:\n")
+A diagnostics:
+> cat("  rank(A):", rankA, "\n")
+  rank(A): 2 
+> cat("  kappa(A):", ifelse(is.na(kappaA), "NA (not available)", format(kappaA, digits = 6)), "\n")
+  kappa(A): 1.53293e+33 
+> 
+> if (inherits(detA, "det_error")) {
++   cat("  det(A) error:", detA$message, "\n")
++ } else {
++   cat("  det(A):", format(detA, digits = 6), "\n")
++ }
+  det(A): 0 
+> 
+> if (inherits(invA, "inv_error")) {
++   cat("  solve(A) error:", invA$message, "\n\n")
++ } else {
++   cat("  solve(A) succeeded. (matrix not printed)\n\n")
++ }
+  solve(A) error: Lapack routine dgesv: system is exactly singular: U[8,8] = 0 
+
+> 
+> # ---- 4) Determinant & inverse for B (non-square) ----------------------------
+> detB <- safe_det(B)
+> invB <- safe_inv(B)
+> rankB <- safe_rank(B)  # numeric rank of 10x100
+> # kappa(B) not defined for non-square in base; skip
+> 
+> cat("B diagnostics:\n")
+B diagnostics:
+> cat("  rank(B):", rankB, "\n")
+  rank(B): 2 
+> 
+> if (inherits(detB, "det_error")) {
++   cat("  det(B) error:", detB$message, "\n")
++ } else {
++   cat("  det(B):", format(detB, digits = 6), "\n") # Not expected to happen
++ }
+  det(B) error: 'x' must be a square matrix 
+> 
+> if (inherits(invB, "inv_error")) {
++   cat("  solve(B) error:", invB$message, "\n\n")
++ } else {
++   cat("  solve(B) succeeded (unexpected). (matrix not printed)\n\n")
++ }
+  solve(B) error: 'a' (10 x 100) must be square 
+
+> 
+> # ---- 5) Notes: How to proceed when inverse is not available -----------------
+> # Pseudoinverse or normal equations (FYI; NOT required by assignment):
+> #   - MASS::ginv(A)           # Moore-Penrose pseudoinverse (works for any shape)
+> #   - solve(t(B) %*% B) %*% t(B)  # if columns of B are full rank in t(B)%*%B
+> # Uncomment to explore:
+> # install.packages("MASS")
+> # library(MASS)
+> # pinvA <- ginv(A)
+> # pinvB <- ginv(B)
+> 
+> 
